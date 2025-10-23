@@ -43,6 +43,10 @@ Thumbs.db
 # Docker
 Dockerfile
 .dockerignore
+docker-compose.yml
+docker-compose.dev.yml
+deploy.sh
+deploy-azure.sh
 
 # Logs
 *.log
@@ -60,6 +64,7 @@ test_*.py
 
 # Documentation
 README.md
+DOCKER_DEPLOYMENT.md
 docs/
 
 # Backup files
@@ -71,3 +76,10 @@ backup/
 temp/
 tmp/
 *.tmp
+
+# Application data - these directories will be created by volumes
+# Only .gitkeep files should be copied into the image
+uploads/*
+!uploads/.gitkeep
+static/outputs/*
+!static/outputs/.gitkeep

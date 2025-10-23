@@ -6,8 +6,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./uploads:/app/uploads
-      - ./static/outputs:/app/static/outputs
+      # Use named volumes for better persistence and management
+      - solar-uploads:/app/uploads
+      - solar-outputs:/app/static/outputs
     environment:
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
@@ -18,3 +19,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+# Named volumes for persistent data storage
+# These volumes will persist data even when containers are removed
+volumes:
+  solar-uploads:
+    driver: local
+  solar-outputs:
+    driver: local

@@ -166,8 +166,11 @@ cython_debug/
 .vscode/
 
 # Solar Analyzer specific
-uploads/
-static/outputs/
+# Keep directory structure but exclude uploaded/generated files
+uploads/*
+!uploads/.gitkeep
+static/outputs/*
+!static/outputs/.gitkeep
 *.png
 *.pdf
 output/
