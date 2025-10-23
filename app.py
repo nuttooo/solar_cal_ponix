@@ -12,7 +12,11 @@ import os
 import sys
 import io
 import base64
-from datetime import datetime
+import glob
+import shutil
+import threading
+import time
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash, session
@@ -52,6 +56,65 @@ def strftime_filter(timestamp, format_string):
 # Ensure upload and output directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+
+
+def cleanup_old_files(max_age_hours=24):
+    """
+    Clean up old files from upload and output directories
+    Files older than max_age_hours will be deleted
+    """
+    try:
+        current_time = datetime.now()
+        cutoff_time = current_time - timedelta(hours=max_age_hours)
+        
+        # Clean up upload directory
+        upload_dir = app.config['UPLOAD_FOLDER']
+        if os.path.exists(upload_dir):
+            for filename in os.listdir(upload_dir):
+                file_path = os.path.join(upload_dir, filename)
+                if os.path.isfile(file_path):
+                    file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                    if file_time < cutoff_time:
+                        os.remove(file_path)
+                        print(f"Removed old upload file: {filename}")
+        
+        # Clean up output directory
+        output_dir = app.config['OUTPUT_FOLDER']
+        if os.path.exists(output_dir):
+            for filename in os.listdir(output_dir):
+                file_path = os.path.join(output_dir, filename)
+                if os.path.isfile(file_path):
+                    file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                    if file_time < cutoff_time:
+                        os.remove(file_path)
+                        print(f"Removed old output file: {filename}")
+        
+        # Clean up temp text images if any exist
+        temp_pattern = os.path.join(output_dir, "temp_text_*.png")
+        temp_files = glob.glob(temp_pattern)
+        for temp_file in temp_files:
+            os.remove(temp_file)
+            print(f"Removed temp file: {os.path.basename(temp_file)}")
+            
+    except Exception as e:
+        print(f"Error during file cleanup: {e}")
+
+
+# Run cleanup on startup
+cleanup_old_files()
+
+
+def schedule_cleanup():
+    """Schedule cleanup to run periodically"""
+    while True:
+        # Run cleanup every 6 hours
+        time.sleep(6 * 60 * 60)
+        cleanup_old_files()
+
+
+# Start cleanup thread
+cleanup_thread = threading.Thread(target=schedule_cleanup, daemon=True)
+cleanup_thread.start()
 
 
 class WebSolarAnalyzer:
