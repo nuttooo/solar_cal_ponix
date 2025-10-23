@@ -4,7 +4,7 @@ services:
   solar-analyzer:
     build: .
     ports:
-      - "8000:8000"
+      - "8150:8000"
     volumes:
       # Use named volumes for better persistence and management
       - solar-uploads:/app/uploads
