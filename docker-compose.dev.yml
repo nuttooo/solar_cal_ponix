@@ -1,0 +1,28 @@
+version: '3.8'
+
+# Development docker-compose configuration
+# This uses bind mounts to allow real-time code changes and easy access to uploaded files
+services:
+  solar-analyzer:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Bind mounts for development - easier to access files on host
+      - ./uploads:/app/uploads
+      - ./static/outputs:/app/static/outputs
+      # Optional: mount code for development (uncomment if needed)
+      # - ./app.py:/app/app.py
+      # - ./solar_analyzer_pro.py:/app/solar_analyzer_pro.py
+      # - ./templates:/app/templates
+    environment:
+      - FLASK_ENV=development
+      - PYTHONUNBUFFERED=1
+      - FLASK_DEBUG=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

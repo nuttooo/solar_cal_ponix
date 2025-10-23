@@ -25,8 +25,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p uploads static/outputs
+# Create necessary directories with proper permissions
+RUN mkdir -p uploads static/outputs && \
+    chmod 755 uploads static/outputs
 
 # Change ownership of directories to non-root user
 RUN useradd --create-home --shell /bin/bash app && \

@@ -12,6 +12,30 @@
 
 ## การติดตั้ง
 
+### วิธีที่ 1: ติดตั้งด้วย Docker (แนะนำ)
+
+#### Production Deployment
+```bash
+# Build และรัน
+docker-compose up -d
+
+# ตรวจสอบสถานะ
+docker-compose ps
+
+# ดู logs
+docker-compose logs -f
+```
+
+#### Development Deployment
+```bash
+# ใช้สำหรับการพัฒนา (bind mounts)
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+**อ่านเพิ่มเติม:** ดู [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) สำหรับคู่มือการ deploy แบบละเอียด
+
+### วิธีที่ 2: ติดตั้งแบบ Manual
+
 ### 1. ติดตั้ง Dependencies
 
 ```bash
