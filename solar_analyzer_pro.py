@@ -44,6 +44,7 @@ class SolarAnalyzerPro:
         self.solar_capacity_mw: float = 3.0
         self.sun_hours: float = 4.0
         self.battery_threshold_w: float = 1500.0
+        self.battery_size_kwh: float = 0.0  # 0 means auto-calculate
 
         self.output_dir = "output"
         if not os.path.exists(self.output_dir):
@@ -110,6 +111,25 @@ class SolarAnalyzerPro:
             except ValueError:
                 print("❌ กรุณาใส่ตัวเลขที่ถูกต้อง (เช่น 1200, 1500, 2200)")
         print(f"✅ เกณฑ์เริ่มจ่ายแบต: {self.battery_threshold_w:.0f} W")
+
+        # Battery size
+        while True:
+            text = input("🔋 ขนาดแบตเตอรี่ (kWh) [0=คำนวณอัตโนมัติ, Default: 0]: ").strip()
+            if not text:
+                self.battery_size_kwh = 0.0
+                break
+            try:
+                value = float(text)
+                if value < 0:
+                    raise ValueError
+                self.battery_size_kwh = value
+                break
+            except ValueError:
+                print("❌ กรุณาใส่ตัวเลขที่ถูกต้อง (เช่น 10, 20.5, 50) หรือ 0 สำหรับคำนวณอัตโนมัติ")
+        if self.battery_size_kwh > 0:
+            print(f"✅ ขนาดแบตเตอรี่: {self.battery_size_kwh:.1f} kWh (กำหนดเอง)")
+        else:
+            print("✅ ขนาดแบตเตอรี่: คำนวณอัตโนมัติตามความต้องการ")
 
         print()
         print("📊 เลือกประเภทการวิเคราะห์:")
@@ -256,7 +276,7 @@ class SolarAnalyzerPro:
         """
         Compute per-day battery envelopes and supporting metrics.
         """
-        if self.df is None or self.solar_generation is None:
+        if self.df is None or self.df.empty or self.solar_generation is None:
             raise RuntimeError("กรุณาโหลดข้อมูลและสร้างโซลาร์ก่อน")
 
         print("🔋 กำลังคำนวณความต้องการแบตเตอรี่...")
@@ -283,7 +303,12 @@ class SolarAnalyzerPro:
                 np.trapz(np.maximum(0, -power_difference), dx=0.25)
             )
             net_energy_balance = total_excess_energy - total_deficit_energy
-            optimal_battery_size = battery_size_needed * 0.8
+            
+            # Use user-specified battery size if provided, otherwise calculate optimal size
+            if self.battery_size_kwh > 0:
+                optimal_battery_size = self.battery_size_kwh
+            else:
+                optimal_battery_size = battery_size_needed * 0.8
 
             consumption_area = float(np.trapz(daily_consumption, dx=0.25))
             solar_area = float(np.trapz(daily_solar, dx=0.25))
@@ -343,7 +368,11 @@ class SolarAnalyzerPro:
         battery_discharge_area = 0.0
         load_above_threshold_area = 0.0
 
-        remaining_battery_energy = solar_to_battery  # 100% round-trip efficiency
+        # Cap the available battery energy at the specified battery size
+        if self.battery_size_kwh > 0:
+            remaining_battery_energy = min(solar_to_battery, self.battery_size_kwh)
+        else:
+            remaining_battery_energy = solar_to_battery  # 100% round-trip efficiency
 
         for idx, (dt, load_kw, solar_kw) in enumerate(
             zip(daily_datetime, daily_consumption, daily_solar)
@@ -400,10 +429,16 @@ class SolarAnalyzerPro:
             daily_datetime = self.df.loc[mask, "datetime"]
 
             fig, axes = plt.subplots(4, 1, figsize=(16, 16))
+            # Determine battery size description for title
+            if self.battery_size_kwh > 0:
+                battery_desc = f"ขนาดแบตเตอรี่ที่กำหนด: {self.battery_size_kwh:.0f} kWh"
+            else:
+                battery_desc = f"ขนาดแบตเตอรี่แนะนำ: {day_data['optimal_battery_size']:.0f} kWh"
+            
             fig.suptitle(
                 f"การวิเคราะห์กำลังไฟรายวันที่ {date}\n"
                 f"โซลาร์ {self.solar_capacity_mw:.1f} MWp, แดด {self.sun_hours:.1f} ชม./วัน\n"
-                f"ขนาดแบตเตอรี่แนะนำ: {day_data['optimal_battery_size']:.0f} kWh",
+                f"{battery_desc}",
                 fontsize=16,
                 fontweight="bold",
             )
@@ -491,7 +526,11 @@ class SolarAnalyzerPro:
             area_above_threshold = float(load_above_threshold.sum()) * 0.25
 
             battery_discharge = np.zeros_like(evening_consumption)
-            remaining_energy = float(day_data["solar_to_battery"])
+            # Cap the available battery energy at the specified battery size
+            if self.battery_size_kwh > 0:
+                remaining_energy = min(float(day_data["solar_to_battery"]), self.battery_size_kwh)
+            else:
+                remaining_energy = float(day_data["solar_to_battery"])
             battery_discharge_energy_total = 0.0
 
             for idx, excess in enumerate(load_above_threshold):
@@ -573,14 +612,22 @@ class SolarAnalyzerPro:
                 linestyle="--",
                 label=f"ต่ำสุด: {day_data['max_deficit']:.0f} kWh",
             )
+            # Determine battery size description for legend
+            if self.battery_size_kwh > 0:
+                battery_label = f"แบตที่กำหนด: {self.battery_size_kwh:.0f} kWh"
+                battery_value = self.battery_size_kwh
+            else:
+                battery_label = f"แบตแนะนำ: {day_data['optimal_battery_size']:.0f} kWh"
+                battery_value = day_data["optimal_battery_size"]
+            
             ax4.axhline(
-                day_data["optimal_battery_size"],
+                battery_value,
                 color="blue",
                 linestyle=":",
-                label=f"แบตแนะนำ: {day_data['optimal_battery_size']:.0f} kWh",
+                label=battery_label,
             )
             ax4.axhline(
-                -day_data["optimal_battery_size"],
+                -battery_value,
                 color="blue",
                 linestyle=":",
                 alpha=0.5,
@@ -606,7 +653,7 @@ class SolarAnalyzerPro:
         """
         Generate a 3-panel weekly summary covering the most recent 7 days.
         """
-        if self.df is None or self.solar_generation is None:
+        if self.df is None or self.df.empty or self.solar_generation is None:
             print("⚠️ ไม่มีข้อมูลเพียงพอสำหรับกราฟสรุปรายสัปดาห์")
             return
 
@@ -788,13 +835,20 @@ class SolarAnalyzerPro:
             return
 
         print("\n📝 สรุปผลรายวัน")
+        
+        # Determine battery column header based on user input
+        if self.battery_size_kwh > 0:
+            battery_header = "แบตที่กำหนด(kWh)"
+        else:
+            battery_header = "แบตแนะนำ(kWh)"
+            
         headers = (
             "วันที่",
             "โหลด(kWh)",
             "โซลาร์(kWh)",
             "เกิน(kWh)",
             "ขาด(kWh)",
-            "แบตแนะนำ(kWh)",
+            battery_header,
             "ใช้แบตช่วงเย็น(kWh)",
         )
         print("{:<12} {:>12} {:>12} {:>10} {:>10} {:>16} {:>18}".format(*headers))

@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Devonix Solar Analyzer - ตั้งค่าการวิเคราะห์{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">⚙️ ตั้งค่าการวิเคราะห์</h1>
+        <p class="text-lg text-gray-600">ปรับแต่งพารามิเตอร์เพื่อให้เหมาะสมกับระบบของคุณ</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <form action="{{ url_for('analyze') }}" method="post" class="space-y-6" id="configForm">
+            
+            <!-- Solar Capacity -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label for="solar_capacity" class="block text-sm font-medium text-gray-700 mb-2">
+                        📏 ขนาดระบบโซลาร์ (MWp)
+                    </label>
+                    <input type="number" 
+                           id="solar_capacity" 
+                           name="solar_capacity" 
+                           value="3.0" 
+                           step="0.1" 
+                           min="0.1" 
+                           max="100" 
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#51BC8E] focus:border-transparent">
+                    <p class="text-sm text-gray-500 mt-1">ขนาดกำลังการผลิตสูงสุดของระบบโซลาร์</p>
+                </div>
+
+                <!-- Sun Hours -->
+                <div>
+                    <label for="sun_hours" class="block text-sm font-medium text-gray-700 mb-2">
+                        ☀️ ชั่วโมงแดดเฉลี่ยต่อวัน
+                    </label>
+                    <input type="number" 
+                           id="sun_hours" 
+                           name="sun_hours" 
+                           value="4.0" 
+                           step="0.1" 
+                           min="0.1" 
+                           max="12" 
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#51BC8E] focus:border-transparent">
+                    <p class="text-sm text-gray-500 mt-1">จำนวนชั่วโมงที่แดดแรงเฉลี่ยต่อวัน</p>
+                </div>
+            </div>
+
+            <!-- Battery Settings -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label for="battery_threshold" class="block text-sm font-medium text-gray-700 mb-2">
+                        ⚡ เกณฑ์เริ่มจ่ายแบต (W)
+                    </label>
+                    <input type="number" 
+                           id="battery_threshold" 
+                           name="battery_threshold" 
+                           value="1500" 
+                           step="100" 
+                           min="100" 
+                           max="10000" 
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#51BC8E] focus:border-transparent">
+                    <p class="text-sm text-gray-500 mt-1">เมื่อโหลดเกินค่านี้จะเริ่มใช้จากแบตเตอรี่</p>
+                </div>
+
+                <!-- Battery Size -->
+                <div>
+                    <label for="battery_size" class="block text-sm font-medium text-gray-700 mb-2">
+                        🔋 ขนาดแบตเตอรี่ (kWh)
+                    </label>
+                    <input type="number" 
+                           id="battery_size" 
+                           name="battery_size" 
+                           value="0" 
+                           step="0.5" 
+                           min="0" 
+                           max="1000"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#51BC8E] focus:border-transparent">
+                    <p class="text-sm text-gray-500 mt-1">ใส่ 0 เพื่อให้คำนวณขนาดที่เหมาะสมอัตโนมัติ</p>
+                </div>
+            </div>
+
+            <!-- Analysis Type -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                    📊 ประเภทการวิเคราะห์
+                </label>
+                <div class="space-y-3">
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="analysis_type" value="daily" checked class="mr-3 text-[#51BC8E]">
+                        <div>
+                            <span class="font-medium">กราฟรายวันพร้อมการวิเคราะห์แบตเตอรี่</span>
+                            <p class="text-sm text-gray-500">แสดงกราฟการวิเคราะห์รายวันทั้งหมด</p>
+                        </div>
+                    </label>
+                    
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="analysis_type" value="weekly" class="mr-3 text-[#51BC8E]">
+                        <div>
+                            <span class="font-medium">กราฟรวม 7 วัน</span>
+                            <p class="text-sm text-gray-500">แสดงกราฟสรุปรายสัปดาห์</p>
+                        </div>
+                    </label>
+                    
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="analysis_type" value="complete" class="mr-3 text-[#51BC8E]">
+                        <div>
+                            <span class="font-medium">วิเคราะห์แบบสมบูรณ์</span>
+                            <p class="text-sm text-gray-500">แสดงกราฟทั้งหมด (แนะนำ)</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Advanced Settings (Optional) -->
+            <div class="border-t pt-6">
+                <button type="button" 
+                        id="toggleAdvanced" 
+                        class="text-[#51BC8E] hover:text-[#1D2144] font-medium flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                    การตั้งค่าขั้นสูง (ไม่จำเป็น)
+                </button>
+                
+                <div id="advancedSettings" class="hidden mt-4 space-y-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="solar_efficiency" class="block text-sm font-medium text-gray-700 mb-2">
+                                ประสิทธิภาพโซลาร์ (%)
+                            </label>
+                            <input type="number" 
+                                   id="solar_efficiency" 
+                                   name="solar_efficiency" 
+                                   value="90" 
+                                   step="1" 
+                                   min="50" 
+                                   max="100"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label for="battery_efficiency" class="block text-sm font-medium text-gray-700 mb-2">
+                                ประสิทธิภาพแบตเตอรี่ (%)
+                            </label>
+                            <input type="number" 
+                                   id="battery_efficiency" 
+                                   name="battery_efficiency" 
+                                   value="90" 
+                                   step="1" 
+                                   min="70" 
+                                   max="100"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                <button type="submit"
+                        id="analyzeBtn"
+                        class="flex-1 bg-[#51BC8E] hover:bg-[#1D2144] text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    <span id="analyzeBtnText">🚀 เริ่มการวิเคราะห์</span>
+                    <span id="analyzeSpinner" class="hidden ml-2">
+                        <svg class="animate-spin h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                </button>
+                
+                <a href="{{ url_for('index') }}" 
+                   class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg text-center transition duration-200">
+                    ย้อนกลับ
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Quick Presets -->
+    <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">🎯 เทมเพลตที่ตั้งไว้ล่วงหน้า</h3>
+        <div class="grid md:grid-cols-3 gap-4">
+            <button onclick="applyPreset('residential')" 
+                    class="p-4 border rounded-lg hover:bg-[#51BC8E]/10 text-left transition">
+                <h4 class="font-medium text-gray-800">🏠 ที่พักอาศัย</h4>
+                <p class="text-sm text-gray-600 mt-1">โซลาร์ 3-5 MWp, แบต 10-20 kWh</p>
+            </button>
+            
+            <button onclick="applyPreset('commercial')" 
+                    class="p-4 border rounded-lg hover:bg-[#51BC8E]/10 text-left transition">
+                <h4 class="font-medium text-gray-800">🏢 สำนักงาน/ร้านค้า</h4>
+                <p class="text-sm text-gray-600 mt-1">โซลาร์ 5-10 MWp, แบต 20-50 kWh</p>
+            </button>
+            
+            <button onclick="applyPreset('industrial')" 
+                    class="p-4 border rounded-lg hover:bg-[#51BC8E]/10 text-left transition">
+                <h4 class="font-medium text-gray-800">🏭 โรงงาน</h4>
+                <p class="text-sm text-gray-600 mt-1">โซลาร์ 10-50 MWp, แบต 50-200 kWh</p>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleAdvanced = document.getElementById('toggleAdvanced');
+    const advancedSettings = document.getElementById('advancedSettings');
+    const configForm = document.getElementById('configForm');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const analyzeBtnText = document.getElementById('analyzeBtnText');
+    const analyzeSpinner = document.getElementById('analyzeSpinner');
+
+    // Toggle advanced settings
+    toggleAdvanced.addEventListener('click', function() {
+        advancedSettings.classList.toggle('hidden');
+        const icon = this.querySelector('svg');
+        icon.classList.toggle('rotate-180');
+    });
+
+    // Handle form submission
+    configForm.addEventListener('submit', function() {
+        analyzeBtn.disabled = true;
+        analyzeBtnText.textContent = 'กำลังวิเคราะห์...';
+        analyzeSpinner.classList.remove('hidden');
+    });
+
+    // Battery size input validation
+    const batterySizeInput = document.getElementById('battery_size');
+    batterySizeInput.addEventListener('input', function() {
+        if (this.value < 0) {
+            this.value = 0;
+        }
+    });
+});
+
+// Apply preset configurations
+function applyPreset(type) {
+    const solarCapacity = document.getElementById('solar_capacity');
+    const sunHours = document.getElementById('sun_hours');
+    const batteryThreshold = document.getElementById('battery_threshold');
+    const batterySize = document.getElementById('battery_size');
+
+    switch(type) {
+        case 'residential':
+            solarCapacity.value = 3.0;
+            sunHours.value = 4.0;
+            batteryThreshold.value = 1500;
+            batterySize.value = 15;
+            break;
+        case 'commercial':
+            solarCapacity.value = 7.0;
+            sunHours.value = 4.5;
+            batteryThreshold.value = 3000;
+            batterySize.value = 35;
+            break;
+        case 'industrial':
+            solarCapacity.value = 20.0;
+            sunHours.value = 5.0;
+            batteryThreshold.value = 10000;
+            batterySize.value = 100;
+            break;
+    }
+
+    // Highlight the fields that changed
+    [solarCapacity, sunHours, batteryThreshold, batterySize].forEach(input => {
+        input.classList.add('ring-2', 'ring-[#51BC8E]');
+        setTimeout(() => {
+            input.classList.remove('ring-2', 'ring-[#51BC8E]');
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

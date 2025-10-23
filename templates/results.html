@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Devonix Solar Analyzer - ผลการวิเคราะห์{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">📊 ผลการวิเคราะห์</h1>
+        <p class="text-lg text-gray-600">สรุปผลการวิเคราะห์ระบบโซลาร์เซลล์และแบตเตอรี่</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-red-500 mb-4">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">โหลดเฉลี่ยต่อวัน</h3>
+            <p class="text-2xl font-bold text-gray-900">{{ "%.1f"|format(results.average_daily_consumption) }} kWh</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-orange-500 mb-4">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">โซลาร์เฉลี่ยต่อวัน</h3>
+            <p class="text-2xl font-bold text-gray-900">{{ "%.1f"|format(results.average_daily_solar) }} kWh</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-green-500 mb-4">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">พลังงานเกินรวม</h3>
+            <p class="text-2xl font-bold text-gray-900">{{ "%.1f"|format(results.total_excess_energy) }} kWh</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-blue-500 mb-4">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">แบตเตอรี่ที่แนะนำ</h3>
+            <p class="text-2xl font-bold text-gray-900">{{ "%.1f"|format(results.average_battery_size) }} kWh</p>
+        </div>
+    </div>
+
+    <!-- Analysis Parameters -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">⚙️ พารามิเตอร์การวิเคราะห์</h2>
+        <div class="grid md:grid-cols-4 gap-4">
+            <div>
+                <span class="text-sm text-gray-500">ขนาดระบบโซลาร์:</span>
+                <p class="font-semibold">{{ "%.1f"|format(params.solar_capacity) }} MWp</p>
+            </div>
+            <div>
+                <span class="text-sm text-gray-500">ชั่วโมงแดดเฉลี่ย:</span>
+                <p class="font-semibold">{{ "%.1f"|format(params.sun_hours) }} ชม./วัน</p>
+            </div>
+            <div>
+                <span class="text-sm text-gray-500">เกณฑ์เริ่มจ่ายแบต:</span>
+                <p class="font-semibold">{{ "%.0f"|format(params.battery_threshold) }} W</p>
+            </div>
+            <div>
+                <span class="text-sm text-gray-500">ขนาดแบตเตอรี่:</span>
+                <p class="font-semibold">
+                    {% if params.battery_size == 0 %}
+                        คำนวณอัตโนมัติ
+                    {% else %}
+                        {{ "%.1f"|format(params.battery_size) }} kWh
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generated Graphs -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-semibold text-gray-800">📈 กราฟการวิเคราะห์</h2>
+            <a href="{{ url_for('generate_pdf') }}" 
+               class="bg-[#51BC8E] hover:bg-[#1D2144] text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+                📄 ดาวน์โหลดรายงาน PDF
+            </a>
+        </div>
+
+        {% if images %}
+            <div class="grid md:grid-cols-2 gap-6">
+                {% for image in images[:4] %}
+                    <div class="border rounded-lg overflow-hidden">
+                        <img src="{{ image.url }}" alt="Analysis Graph" class="w-full h-auto">
+                        <div class="p-4 bg-gray-50">
+                            <h3 class="font-medium text-gray-800 mb-2">{{ image.filename.replace('_', ' ').replace('.png', '').title() }}</h3>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-500">
+                                    สร้างเมื่อ: {{ image.mtime | strftime('%d/%m/%Y %H:%M') }}
+                                </span>
+                                <a href="{{ url_for('download_file', filename=image.filename) }}" 
+                                   class="text-[#51BC8E] hover:text-[#1D2144] font-medium text-sm">
+                                    📥 ดาวน์โหลด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if images|length > 4 %}
+                <div class="mt-6 text-center">
+                    <p class="text-gray-600 mb-4">แสดง 4 รูปแรกจากทั้งหมด {{ images|length }} รูป</p>
+                    <button id="showAllImages" 
+                            class="bg-[#51BC8E] hover:bg-[#1D2144] text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+                        แสดงทั้งหมด
+                    </button>
+                </div>
+
+                <div id="allImagesContainer" class="hidden mt-6 grid md:grid-cols-2 gap-6">
+                    {% for image in images[4:] %}
+                        <div class="border rounded-lg overflow-hidden">
+                            <img src="{{ image.url }}" alt="Analysis Graph" class="w-full h-auto">
+                            <div class="p-4 bg-gray-50">
+                                <h3 class="font-medium text-gray-800 mb-2">{{ image.filename.replace('_', ' ').replace('.png', '').title() }}</h3>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">
+                                        สร้างเมื่อ: {{ image.mtime | strftime('%d/%m/%Y %H:%M') }}
+                                    </span>
+                                    <a href="{{ url_for('download_file', filename=image.filename) }}" 
+                                       class="text-[#51BC8E] hover:text-[#1D2144] font-medium text-sm">
+                                        📥 ดาวน์โหลด
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">ไม่พบกราฟ</h3>
+                <p class="mt-1 text-sm text-gray-500">ไม่สามารถสร้างกราฟได้ในขณะนี้</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Daily Data Table -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">📋 ข้อมูลรายวัน</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">โหลด (kWh)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">โซลาร์ (kWh)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เกิน (kWh)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ขาด (kWh)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ขนาดแบต (kWh)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ใช้แบตช่วงเย็น (kWh)</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for day in results.daily_data %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ day.date }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.1f"|format(day.consumption_area) }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.1f"|format(day.solar_area) }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.1f"|format(day.total_excess_energy) }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.1f"|format(day.total_deficit_energy) }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.1f"|format(day.optimal_battery_size) }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.1f"|format(day.battery_discharge_16_22_area) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row gap-4">
+        <a href="{{ url_for('generate_pdf') }}" 
+           class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg text-center transition duration-200">
+            📄 ดาวน์โหลดรายงาน PDF แบบสมบูรณ์
+        </a>
+        
+        <a href="{{ url_for('configure') }}" 
+           class="flex-1 bg-[#51BC8E] hover:bg-[#1D2144] text-white font-semibold py-3 px-6 rounded-lg text-center transition duration-200">
+            🔄 วิเคราะห์ใหม่
+        </a>
+        
+        <a href="{{ url_for('index') }}" 
+           class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg text-center transition duration-200">
+            🏠 หน้าแรก
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const showAllImagesBtn = document.getElementById('showAllImages');
+    const allImagesContainer = document.getElementById('allImagesContainer');
+
+    if (showAllImagesBtn) {
+        showAllImagesBtn.addEventListener('click', function() {
+            allImagesContainer.classList.toggle('hidden');
+            this.textContent = allImagesContainer.classList.contains('hidden') ? 'แสดงทั้งหมด' : 'ซ่อนบางส่วน';
+        });
+    }
+
+    // Add download progress indication
+    const downloadLinks = document.querySelectorAll('a[href*="download"]');
+    downloadLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            const originalText = this.textContent;
+            this.innerHTML = '⏳ กำลังดาวน์โหลด...';
+            this.classList.add('opacity-75');
+            
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.classList.remove('opacity-75');
+            }, 3000);
+        });
+    });
+
+    // PDF generation progress
+    const pdfLink = document.querySelector('a[href*="generate_pdf"]');
+    if (pdfLink) {
+        pdfLink.addEventListener('click', function() {
+            const originalText = this.innerHTML;
+            this.innerHTML = '⏳ กำลังสร้าง PDF...';
+            this.classList.add('opacity-75', 'cursor-not-allowed');
+            this.disabled = true;
+            
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.classList.remove('opacity-75', 'cursor-not-allowed');
+                this.disabled = false;
+            }, 5000);
+        });
+    }
+});
+</script>
+{% endblock %}

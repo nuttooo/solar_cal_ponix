@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Solar Analyzer Pro - หน้าแรก{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">🌞 Devonix Solar Analyzer</h1>
+        <p class="text-xl text-gray-600">เครื่องมือวิเคราะห์ระบบโซลาร์เซลล์และแบตเตอรี่แบบออนไลน์</p>
+        <p class="text-lg text-gray-500 mt-2">อัปโหลดข้อมูลการใช้ไฟ ตั้งค่าระบบ และรับผลการวิเคราะห์พร้อมกราฟและรายงาน PDF</p>
+    </div>
+
+    <!-- File Upload Card -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">อัปโหลดข้อมูลการใช้ไฟฟ้า</h2>
+        
+        <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" 
+              class="space-y-6" id="uploadForm">
+            
+            <!-- File Upload Area -->
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#51BC8E] transition-colors"
+                 id="dropZone">
+                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                
+                <label for="file" class="cursor-pointer">
+                    <span class="text-lg text-gray-600">คลิกเพื่อเลือกไฟล์หรือลากไฟล์มาวางที่นี่</span>
+                    <input id="file" name="file" type="file" accept=".csv" class="sr-only" required>
+                </label>
+                
+                <p class="text-sm text-gray-500 mt-2">รองรับไฟล์ CSV เท่านั้น (ขนาดสูงสุด 16MB)</p>
+                
+                <div id="fileInfo" class="mt-4 hidden">
+                    <div class="bg-[#51BC8E]/10 border border-[#51BC8E]/30 rounded-md p-3">
+                        <p class="text-sm text-[#1D2144]">
+                            <span class="font-semibold">ไฟล์ที่เลือก:</span>
+                            <span id="fileName"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button type="submit" id="uploadBtn"
+                        class="bg-[#51BC8E] hover:bg-[#1D2144] text-white font-semibold py-3 px-8 rounded-lg transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    <span id="uploadBtnText">อัปโหลดไฟล์</span>
+                    <span id="uploadSpinner" class="hidden ml-2">
+                        <svg class="animate-spin h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Information Cards -->
+    <div class="grid md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-blue-500 mb-4">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">ข้อมูลที่ต้องการ</h3>
+            <p class="text-gray-600">ไฟล์ CSV ที่มีข้อมูลการใช้ไฟฟ้าราย 15 นาที พร้อมคอลัมน์ datetime, rate_a, rate_b, rate_c</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-green-500 mb-4">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">ปรับแต่งได้</h3>
+            <p class="text-gray-600">ตั้งค่าขนาดระบบโซลาร์ ชั่วโมงแดด เกณฑ์การใช้แบต และขนาดแบตเตอรี่ตามต้องการ</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="text-purple-500 mb-4">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">ผลลัพธ์ครบถ้วน</h3>
+            <p class="text-gray-600">รับกราฟการวิเคราะห์รายวัน สรุปรายสัปดาห์ และรายงาน PDF พร้อมข้อมูลทั้งหมด</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('file');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadBtnText = document.getElementById('uploadBtnText');
+    const uploadSpinner = document.getElementById('uploadSpinner');
+    const uploadForm = document.getElementById('uploadForm');
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    // Highlight drop area when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    // Handle dropped files
+    dropZone.addEventListener('drop', handleDrop, false);
+
+    // Handle file selection
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            handleFile(this.files[0]);
+        }
+    });
+
+    // Handle form submission
+    uploadForm.addEventListener('submit', function() {
+        uploadBtn.disabled = true;
+        uploadBtnText.textContent = 'กำลังอัปโหลด...';
+        uploadSpinner.classList.remove('hidden');
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function highlight() {
+        dropZone.classList.add('border-[#51BC8E]', 'bg-[#51BC8E]/10');
+    }
+
+    function unhighlight() {
+        dropZone.classList.remove('border-[#51BC8E]', 'bg-[#51BC8E]/10');
+    }
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    }
+
+    function handleFile(file) {
+        // Check if file is CSV
+        if (!file.name.endsWith('.csv')) {
+            alert('กรุณาเลือกไฟล์ CSV เท่านั้น');
+            return;
+        }
+
+        // Check file size (16MB max)
+        if (file.size > 16 * 1024 * 1024) {
+            alert('ขนาดไฟล์ต้องไม่เกิน 16MB');
+            return;
+        }
+
+        // Update UI
+        fileName.textContent = file.name;
+        fileInfo.classList.remove('hidden');
+        fileInput.files = new DataTransfer().files;
+        
+        // Create new FileList with the selected file
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+    }
+});
+</script>
+{% endblock %}
