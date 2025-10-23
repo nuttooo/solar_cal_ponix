@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Devonix Solar Analyzer{% endblock %}</title>
+    <title>{% block title %}Ponix Solar Analyzer{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -21,8 +21,9 @@
         <div class="container mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
-                    <img src="{{ url_for('static', filename='images/ponix-logo.svg') }}" alt="Ponix Logo" class="w-12 h-12">
-                    <h1 class="text-xl font-semibold">Devonix Solar Analyzer</h1>
+                    <div class="bg-white p-1 rounded">
+                        <img src="{{ url_for('static', filename='images/logo-ponix.png') }}" alt="Ponix Logo" class="w-20 h-10">
+                    </div>
                 </div>
                 <div class="flex space-x-4">
                     <a href="{{ url_for('index') }}" class="hover:bg-[#1D2144] px-3 py-2 rounded transition">หน้าแรก</a>
@@ -57,7 +58,7 @@
     <!-- Footer -->
     <footer class="bg-gray-800 text-white py-6 mt-12">
         <div class="container mx-auto px-4 text-center">
-            <p>&copy; 2024 Devonix Solar Analyzer. All rights reserved.</p>
+            <p>&copy; 2024 Ponix Solar Analyzer. All rights reserved. Power By Devonix.</p>
         </div>
     </footer>
 
