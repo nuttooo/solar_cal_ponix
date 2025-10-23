@@ -169,6 +169,7 @@ cython_debug/
 uploads/
 static/outputs/
 *.png
+!public/*.png
 *.pdf
 output/
 
