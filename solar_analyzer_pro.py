@@ -489,10 +489,13 @@ class SolarAnalyzerPro:
             # Panel 2: Power difference (charging vs discharging)
             ax2 = axes[1]
             diff = day_data["power_difference"]
+            positive_diff = np.maximum(0, diff)
+            negative_diff = np.minimum(0, diff)
             ax2.fill_between(
                 daily_datetime,
                 0,
-                np.maximum(0, diff),
+                positive_diff,
+                where=positive_diff > 0,
                 alpha=0.7,
                 color="green",
                 label="พลังงานเกิน (ชาร์จแบต)",
@@ -500,7 +503,8 @@ class SolarAnalyzerPro:
             ax2.fill_between(
                 daily_datetime,
                 0,
-                -np.minimum(0, diff),
+                negative_diff,
+                where=negative_diff < 0,
                 alpha=0.7,
                 color="blue",
                 label="พลังงานขาด (จ่ายจากแบต/กริด)",
