@@ -173,6 +173,7 @@ static/outputs/*
 !static/outputs/.gitkeep
 *.png
 !public/*.png
+!static/images/*.png
 *.pdf
 output/
 
