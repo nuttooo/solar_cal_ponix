@@ -237,8 +237,8 @@ def analyze():
         battery_size = float(request.form.get('battery_size', 0.0))
         
         # Validate parameters
-        if solar_capacity <= 0 or sun_hours <= 0 or battery_threshold <= 0 or battery_size < 0:
-            raise ValueError("พารามิเตอร์ต้องมีค่ามากกว่า 0")
+        if solar_capacity <= 0 or sun_hours <= 0 or battery_threshold < 0 or battery_size < 0:
+            raise ValueError("พารามิเตอร์ต้องมีค่ามากกว่าหรือเท่ากับ 0")
         
         # Initialize analyzer
         web_analyzer = WebSolarAnalyzer()
