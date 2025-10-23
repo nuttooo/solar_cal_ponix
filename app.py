@@ -19,7 +19,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash, session
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, redirect, url_for, flash, session
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -39,11 +39,12 @@ plt.rcParams["font.size"] = 10
 # Import our solar analyzer
 from solar_analyzer_pro import SolarAnalyzerPro
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'static/outputs'
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching for static files in development
 
 # Add custom filter for datetime formatting
 @app.template_filter('strftime')
@@ -612,6 +613,18 @@ def generate_pdf():
     
     # Return PDF for download
     return send_file(pdf_path, as_attachment=True, download_name=pdf_filename)
+
+
+@app.route('/static/images/<filename>')
+def serve_static_images(filename):
+    """Serve static image files with proper headers"""
+    return send_from_directory('static/images', filename)
+
+
+@app.route('/static/outputs/<filename>')
+def serve_static_outputs(filename):
+    """Serve static output files with proper headers"""
+    return send_from_directory('static/outputs', filename)
 
 
 if __name__ == '__main__':
