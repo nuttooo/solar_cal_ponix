@@ -60,6 +60,7 @@
                            value="1500"
                            step="100"
                            min="0"
+                           max="5000000"
                            required
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#51BC8E] focus:border-transparent">
                     <p class="text-sm text-gray-500 mt-1">เมื่อโหลดเกินค่านี้จะเริ่มใช้จากแบตเตอรี่</p>
@@ -262,7 +263,7 @@ function applyPreset(type) {
         case 'industrial':
             solarCapacity.value = 20.0;
             sunHours.value = 5.0;
-            batteryThreshold.value = 10000;
+            batteryThreshold.value = 5000000;
             batterySize.value = 100;
             break;
     }
