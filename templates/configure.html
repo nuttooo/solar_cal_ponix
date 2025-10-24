@@ -10,6 +10,16 @@
     </div>
 
     <div class="bg-white rounded-lg shadow-lg p-8">
+        <!-- Session Status Indicator -->
+        <div id="sessionStatus" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg hidden">
+            <div class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm text-green-700">ไฟล์พร้อมใช้งาน - ข้อมูลของคุณถูกบันทึกแล้ว</span>
+            </div>
+        </div>
+        
         <form action="{{ url_for('analyze') }}" method="post" class="space-y-6" id="configForm">
             
             <!-- Solar Capacity -->
@@ -224,11 +234,56 @@ document.addEventListener('DOMContentLoaded', function() {
         icon.classList.toggle('rotate-180');
     });
 
-    // Handle form submission
-    configForm.addEventListener('submit', function() {
+    // Handle form submission with validation
+    configForm.addEventListener('submit', function(e) {
+        // Validate form before submission
+        const solarCapacity = parseFloat(document.getElementById('solar_capacity').value);
+        const sunHours = parseFloat(document.getElementById('sun_hours').value);
+        const batteryThreshold = parseFloat(document.getElementById('battery_threshold').value);
+        const batterySize = parseFloat(document.getElementById('battery_size').value);
+        
+        // Client-side validation
+        if (isNaN(solarCapacity) || solarCapacity <= 0) {
+            e.preventDefault();
+            alert('กรุณากรอกขนาดระบบโซลาร์ให้ถูกต้อง (มากกว่า 0)');
+            return;
+        }
+        
+        if (isNaN(sunHours) || sunHours <= 0 || sunHours > 12) {
+            e.preventDefault();
+            alert('กรุณากรอกชั่วโมงแดดเฉลี่ยให้ถูกต้อง (ระหว่าง 0-12 ชั่วโมง)');
+            return;
+        }
+        
+        if (isNaN(batteryThreshold) || batteryThreshold < 0) {
+            e.preventDefault();
+            alert('กรุณากรอกเกณฑ์เริ่มจ่ายแบตให้ถูกต้อง (มากกว่าหรือเท่ากับ 0)');
+            return;
+        }
+        
+        if (isNaN(batterySize) || batterySize < 0) {
+            e.preventDefault();
+            alert('กรุณากรอกขนาดแบตเตอรี่ให้ถูกต้อง (มากกว่าหรือเท่ากับ 0)');
+            return;
+        }
+        
+        // Show loading state
         analyzeBtn.disabled = true;
         analyzeBtnText.textContent = 'กำลังวิเคราะห์...';
         analyzeSpinner.classList.remove('hidden');
+        
+        // Add session keep-alive mechanism for slow submissions
+        const keepAliveInterval = setInterval(() => {
+            fetch('/keep-alive', { method: 'POST' })
+                .catch(() => {
+                    // Silently fail keep-alive requests
+                });
+        }, 30000); // Every 30 seconds
+        
+        // Clear interval when page unloads (form completes or user navigates away)
+        window.addEventListener('beforeunload', () => {
+            clearInterval(keepAliveInterval);
+        });
     });
 
     // Battery size input validation

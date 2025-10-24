@@ -156,10 +156,25 @@ class SolarAnalyzerPro:
             print(f"❌ ไม่พบไฟล์: {file_path}")
             return False
 
-        try:
-            df = pd.read_csv(file_path, encoding="utf-8-sig")
-        except Exception as exc:  # pragma: no cover - defensive
-            print(f"❌ อ่านไฟล์ไม่สำเร็จ: {exc}")
+        # Try different encodings that might handle CSV files better
+        encodings = ["utf-8-sig", "utf-8", "windows-1252", "iso-8859-1", "tis-620"]
+        df = None
+        
+        for encoding in encodings:
+            try:
+                print(f"   กำลังลองใช้ encoding: {encoding}")
+                df = pd.read_csv(file_path, encoding=encoding)
+                print(f"   ✅ อ่านไฟล์สำเร็จด้วย encoding: {encoding}")
+                break
+            except UnicodeDecodeError:
+                print(f"   ❌ ไม่สามารถอ่านด้วย encoding: {encoding}")
+                continue
+            except Exception as exc:
+                print(f"   ❌ ข้อผิดพลาดอื่นๆ กับ encoding {encoding}: {exc}")
+                continue
+        
+        if df is None:
+            print(f"❌ ไม่สามารถอ่านไฟล์ด้วย encoding ที่รองรับทั้งหมดได้: {encodings}")
             return False
 
         expected_cols = [
@@ -175,9 +190,64 @@ class SolarAnalyzerPro:
 
         datetime_str = df["datetime"].astype(str).str.strip()
         datetime_str = datetime_str.str.replace(" 24.00", " 00.00", regex=False)
-        df["datetime"] = pd.to_datetime(
-            datetime_str, format="%d/%m/%Y %H.%M", errors="coerce"
-        )
+        
+        # Handle different date formats and add better error handling
+        # First, convert Thai Buddhist years to Gregorian years
+        def convert_thai_to_gregorian(date_str):
+            if isinstance(date_str, str):
+                # Split date and time
+                parts = date_str.strip().split()
+                if len(parts) >= 1:
+                    date_part = parts[0]
+                    time_part = parts[1] if len(parts) > 1 else "00.00"
+                    
+                    # Split date components
+                    date_components = date_part.split('/')
+                    if len(date_components) == 3:
+                        try:
+                            year = int(date_components[2])
+                            # Convert Thai Buddhist year to Gregorian year
+                            if year > 2500:  # Likely Thai Buddhist year
+                                year = year - 543
+                                date_components[2] = str(year)
+                                new_date = '/'.join(date_components)
+                                return f"{new_date} {time_part}"
+                        except ValueError:
+                            pass
+            return date_str
+        
+        # Apply Thai year conversion
+        converted_datetime_str = datetime_str.apply(convert_thai_to_gregorian)
+        
+        # Try different date formats
+        try:
+            df["datetime"] = pd.to_datetime(
+                converted_datetime_str, format="%d/%m/%Y %H.%M", errors="coerce"
+            )
+        except:
+            try:
+                # Try alternative format
+                df["datetime"] = pd.to_datetime(
+                    converted_datetime_str, format="%d/%m/%Y %H:%M", errors="coerce"
+                )
+            except:
+                try:
+                    # Try parsing with dayfirst=True as fallback
+                    df["datetime"] = pd.to_datetime(
+                        converted_datetime_str, dayfirst=True, errors="coerce"
+                    )
+                except:
+                    print("❌ ไม่สามารถแปลงวันที่ได้ด้วยวิธีใดๆ")
+                    return False
+        
+        # Remove rows with invalid dates
+        invalid_dates = df["datetime"].isna()
+        if invalid_dates.any():
+            print(f"⚠️ พบวันที่ไม่ถูกต้อง {invalid_dates.sum()} แถว กำลังลบออก...")
+            df = df[~invalid_dates].copy()
+            if df.empty:
+                print("❌ ไม่มีข้อมูลที่ถูกต้องหลังจากการกรองวันที่ไม่ถูกต้อง")
+                return False
 
         # Adjust rows that rolled over past midnight (originally 24:00)
         mask_midnight = datetime_str.str.contains("24.00", na=False)

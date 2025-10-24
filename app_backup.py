@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Solar Analyzer Web Application
-=============================
+==============================
 
 Web interface for solar and battery system analysis.
 Users can upload CSV files and configure parameters through a web UI.
@@ -20,7 +20,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, redirect, url_for, flash, session
-from flask.json.provider import DefaultJSONProvider
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -40,28 +39,7 @@ plt.rcParams["font.size"] = 10
 # Import our solar analyzer
 from solar_analyzer_pro import SolarAnalyzerPro
 
-class NumpyJSONProvider(DefaultJSONProvider):
-    """Custom JSON provider that handles numpy arrays and other non-serializable objects"""
-    
-    def default(self, obj):
-        if hasattr(obj, 'tolist'):
-            return obj.tolist()
-        elif hasattr(obj, 'isoformat'):
-            return obj.isoformat()
-        elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes)):
-            try:
-                return [self.default(item) for item in obj]
-            except:
-                return str(obj)
-        elif hasattr(obj, '__dict__'):
-            try:
-                return float(obj)
-            except:
-                return str(obj)
-        return super().default(obj)
-
 app = Flask(__name__, static_folder='static', static_url_path='/static')
-app.json_provider_class = NumpyJSONProvider
 app.secret_key = os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -170,39 +148,8 @@ class WebSolarAnalyzer:
         self.uploaded_file = None
         
     def process_uploaded_file(self, file_path: str) -> bool:
-        """Process uploaded CSV file"""
-        result = self.analyzer.load_and_parse_data(file_path)
-        
-        # Additional validation for empty or invalid data
-        if result and self.analyzer.df is not None:
-            if self.analyzer.df.empty:
-                print("❌ ไฟล์ที่อัปโหลดมีข้อมูลว่างเปล่า")
-                return False
-            
-            # Check for valid date range
-            if 'date' in self.analyzer.df.columns:
-                valid_dates = pd.notna(self.analyzer.df['date'])
-                if not valid_dates.any():
-                    print("❌ ไม่มีวันที่ที่ถูกต้องในข้อมูล")
-                    return False
-                
-                date_count = self.analyzer.df['date'].nunique()
-                print(f"✅ โหลดข้อมูลสำเร็จ: {date_count} วัน")
-                
-                # Check for reasonable data range
-                min_date = self.analyzer.df['date'].min()
-                max_date = self.analyzer.df['date'].max()
-                print(f"📅 ช่วงเวลาในข้อมูล: {min_date} ถึง {max_date}")
-                
-                # Check for consumption data
-                if 'consumption' in self.analyzer.df.columns:
-                    total_consumption = self.analyzer.df['consumption'].sum()
-                    if total_consumption == 0:
-                        print("⚠️ ข้อมูลการใช้ไฟฟ้าทั้งหมดเป็น 0")
-                        return False
-                    print(f"⚡ การใช้ไฟฟ้ารวม: {total_consumption:.1f} kWh")
-        
-        return result
+        """Process the uploaded CSV file"""
+        return self.analyzer.load_and_parse_data(file_path)
     
     def configure_parameters(self, solar_capacity: float, sun_hours: float, 
                             battery_threshold: float, battery_size: float) -> None:
@@ -230,22 +177,10 @@ class WebSolarAnalyzer:
             daily_data = []
             for day in self.analyzer.battery_analysis:
                 day_copy = day.copy()
-                # Convert numpy arrays to lists and handle non-serializable objects
+                # Convert numpy arrays to lists
                 for key, value in day_copy.items():
                     if hasattr(value, 'tolist'):
                         day_copy[key] = value.tolist()
-                    elif hasattr(value, 'isoformat'):  # Handle datetime objects
-                        day_copy[key] = value.isoformat()
-                    elif hasattr(value, '__iter__'):  # Handle other iterables
-                        try:
-                            day_copy[key] = list(value)
-                        except:
-                            day_copy[key] = str(value)
-                    elif hasattr(value, '__dict__'):  # Handle numpy scalars
-                        try:
-                            day_copy[key] = float(value)
-                        except:
-                            day_copy[key] = str(value)
                 daily_data.append(day_copy)
             
             summary = {
@@ -382,31 +317,7 @@ def analyze():
             # Remove daily_data from session to avoid cookie size limit
             session_results.pop('daily_data', None)
         
-        # Ensure no numpy arrays or other non-serializable objects in session
-        def make_json_serializable(obj):
-            """Convert numpy arrays and other non-serializable objects to JSON-serializable types"""
-            if hasattr(obj, 'tolist'):  # numpy arrays
-                return obj.tolist()
-            elif hasattr(obj, 'isoformat'):  # datetime objects
-                return obj.isoformat()
-            elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes)):  # other iterables
-                try:
-                    return [make_json_serializable(item) for item in obj]
-                except:
-                    return str(obj)
-            elif hasattr(obj, '__dict__'):  # numpy scalars and other objects
-                try:
-                    return float(obj)
-                except:
-                    return str(obj)
-            return obj
-        
-        # Recursively convert all values in session_results
-        json_safe_results = {}
-        for key, value in session_results.items():
-            json_safe_results[key] = make_json_serializable(value)
-        
-        session['analysis_results'] = json_safe_results
+        session['analysis_results'] = session_results
         session['analysis_params'] = {
             'solar_capacity': solar_capacity,
             'sun_hours': sun_hours,
@@ -451,29 +362,9 @@ def results():
                 web_analyzer.analyzer.create_solar_generation()
                 web_analyzer.analyzer.calculate_daily_battery_requirements()
                 
-                # Add daily data to results (convert numpy arrays to lists)
+                # Add daily data to results
                 if web_analyzer.analyzer.battery_analysis:
-                    daily_data = []
-                    for day in web_analyzer.analyzer.battery_analysis:
-                        day_copy = day.copy()
-                        # Convert numpy arrays to lists and handle non-serializable objects
-                        for key, value in day_copy.items():
-                            if hasattr(value, 'tolist'):
-                                day_copy[key] = value.tolist()
-                            elif hasattr(value, 'isoformat'):  # Handle datetime objects
-                                day_copy[key] = value.isoformat()
-                            elif hasattr(value, '__iter__'):  # Handle other iterables
-                                try:
-                                    day_copy[key] = list(value)
-                                except:
-                                    day_copy[key] = str(value)
-                            elif hasattr(value, '__dict__'):  # Handle numpy scalars
-                                try:
-                                    day_copy[key] = float(value)
-                                except:
-                                    day_copy[key] = str(value)
-                        daily_data.append(day_copy)
-                    results['daily_data'] = daily_data
+                    results['daily_data'] = web_analyzer.analyzer.battery_analysis
         except Exception as e:
             print(f"Error re-running analysis for daily data: {e}")
     
